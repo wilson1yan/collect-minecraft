@@ -58,7 +58,7 @@ def worker(id, args):
     args.output_dir = osp.join(args.output_dir, f'{id}')
     os.makedirs(args.output_dir, exist_ok=True)
 
-    env = gym.make('SimpleExplore-v0', resolution=(args.resolution, args.resolution))
+    env = gym.make('SimpleExplore-v0')
     agent = SimpleAgent(args.prob_forward, args.action_repeat)
 
     num_episodes = args.num_episodes // args.n_parallel + (id < (args.num_episodes % args.n_parallel))
@@ -69,7 +69,7 @@ def worker(id, args):
          
     
 def main(args):
-    abs_env = SimpleExplore()
+    abs_env = SimpleExplore(resolution=(args.resolution, args.resolution))
     abs_env.register()
 
     os.makedirs(args.output_dir, exist_ok=True)
