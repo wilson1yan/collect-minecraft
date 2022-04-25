@@ -10,15 +10,29 @@ from env import SimpleExplore
 
 
 class SimpleAgent:
-    def __init__(self, prob_forward=0., action_repeat=5):
+    def __init__(self, prob_forward=0., action_repeat=5, max_consec_fwd=25):
         self.action_repeat = action_repeat
         self.prob_forward = prob_forward
+        self.max_consec_fwd = max_consec_fwd
+
+        self.n_fwd = 0
         self.counter = 0
         self.action = None
 
     def sample(self):
+        if self.n_fwd >= self.max_consec_fwd:
+            prob_forward = 0.
+        else:
+            prob_forward = self.prob_forward
+
         if self.action is None or self.counter % self.action_repeat == 0:
-            self.action = sample_action(self.prob_forward)
+            self.action = sample_action(prob_forward)
+
+        if self.action[1] == 0:
+            self.n_fwd += 1
+        else:
+            self.n_fwd = 0
+
         self.counter += 1
         return self.action
 
@@ -28,14 +42,15 @@ def sample_action(prob_forward):
     prob_turn = (1 - prob_forward) / 2
     i = np.random.choice([0, 1, 2], 
                          p=[prob_forward, prob_turn, prob_turn])
+    jump = np.array(1)
     if i == 0: # forward
-        forward = jump = np.array(1)
+        forward = np.array(1)
         camera = np.array([0., 0.])
     elif i == 1: # left
-        forward = jump = np.array(0)
+        forward = np.array(0)
         camera = np.array([0., -20.])
     elif i == 2: # right
-        forward = jump = np.array(0)
+        forward = np.array(0)
         camera = np.array([0., 20.])
     else:
         raise ValueError('Invalid action', i)
@@ -117,6 +132,8 @@ if __name__ == '__main__':
                         help='default: 5')
     parser.add_argument('-p', '--prob_forward', type=float, default=0.,
                         help='default: 0.')
+    parser.add_argument('-m', '--max_consec_fwd', type=int, default=25,
+                        help='default: 25')
     parser.add_argument('-t', '--traj_length', type=int, default=100,
                         help='default: 100')
     parser.add_argument('-n', '--num_episodes', type=int, default=100,
