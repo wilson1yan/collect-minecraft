@@ -96,7 +96,7 @@ class SimpleExplore(SimpleEmbodimentEnvSpec):
     def __init__(self, forest_only, *args, **kwargs):
         if 'name' not in kwargs:
             kwargs['name'] = 'SimpleExplore-v0'
-        self.forest_only = kwargs['forest_only']
+        self.forest_only = forest_only
         super().__init__(*args, **kwargs)
 
     def create_rewardables(self) -> List[Handler]:
