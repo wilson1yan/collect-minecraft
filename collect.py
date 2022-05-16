@@ -10,40 +10,62 @@ from env import SimpleExplore
 
 
 class SimpleAgent:
-    def __init__(self, prob_forward=0., action_repeat=5):
+    def __init__(self, prob_forward=0., action_repeat=5, max_consec_fwd=25, initial_sweep=False):
         self.action_repeat = action_repeat
         self.prob_forward = prob_forward
+        self.max_consec_fwd = max_consec_fwd
+        self.initial_sweep = initial_sweep
+        self.reset()
+
+
+    def reset(self):
+        self.n_fwd = 0
         self.counter = 0
         self.action = None
 
     def sample(self):
+        if self.initial_sweep and self.counter < 20:
+            self.counter += 1
+            return (ACTIONS['left'], ACTIONS_TO_ID['left'])
+
+        if self.n_fwd >= self.max_consec_fwd:
+            prob_forward = 0.
+        else:
+            prob_forward = self.prob_forward
+
         if self.action is None or self.counter % self.action_repeat == 0:
-            self.action = sample_action(self.prob_forward)
+            self.action = sample_action(prob_forward)
+
+        if self.action[1] == 0:
+            self.n_fwd += 1
+        else:
+            self.n_fwd = 0
+
         self.counter += 1
         return self.action
 
 
+ACTIONS = {
+    'forward': dict(forward=np.array(1), jump=np.array(1), camera=np.array([0., 0.])),
+    'left': dict(forward=np.array(0), jump=np.array(1), camera=np.array([0., -20.])),
+    'right': dict(forward=np.array(0), jump=np.array(1), camera=np.array([0., 20.]))
+}
+
+ACTIONS_TO_ID = {
+    'forward': 0,
+    'left': 1,
+    'right': 2
+}
+
 
 def sample_action(prob_forward):
     prob_turn = (1 - prob_forward) / 2
-    i = np.random.choice([0, 1, 2], 
+    i = np.random.choice(['forward', 'left', 'right'], 
                          p=[prob_forward, prob_turn, prob_turn])
-    if i == 0: # forward
-        forward = jump = np.array(1)
-        camera = np.array([0., 0.])
-    elif i == 1: # left
-        forward = jump = np.array(0)
-        camera = np.array([0., -20.])
-    elif i == 2: # right
-        forward = jump = np.array(0)
-        camera = np.array([0., 20.])
-    else:
-        raise ValueError('Invalid action', i)
-    
-    return dict(forward=forward, jump=jump, camera=camera), i
-
+    return ACTIONS[i], ACTIONS_TO_ID[i]
     
 def collect_episode(env, agent, traj_length):
+    agent.reset()
     observations, actions = [env.reset()['pov']], [0]
     for t in range(traj_length):
         action, a_id = agent.sample()
@@ -64,7 +86,7 @@ def worker(id, args):
     os.makedirs(args.output_dir, exist_ok=True)
 
     env = gym.make('SimpleExplore-v0')
-    agent = SimpleAgent(args.prob_forward, args.action_repeat)
+    agent = SimpleAgent(args.prob_forward, args.action_repeat, args.max_consec_fwd, args.initial_sweep)
 
     num_episodes = args.num_episodes // args.n_parallel + (id < (args.num_episodes % args.n_parallel))
     pbar = tqdm(total=num_episodes, position=id)
@@ -97,7 +119,7 @@ def worker(id, args):
          
     
 def main(args):
-    abs_env = SimpleExplore(resolution=(args.resolution, args.resolution))
+    abs_env = SimpleExplore(resolution=(args.resolution, args.resolution), forest_only=args.forest_only)
     abs_env.register()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -117,6 +139,10 @@ if __name__ == '__main__':
                         help='default: 5')
     parser.add_argument('-p', '--prob_forward', type=float, default=0.,
                         help='default: 0.')
+    parser.add_argument('-m', '--max_consec_fwd', type=int, default=25,
+                        help='default: 25')
+    parser.add_argument('-s', '--initial_sweep', action='store_true')
+    parser.add_argument('--forest_only', action='store_true')
     parser.add_argument('-t', '--traj_length', type=int, default=100,
                         help='default: 100')
     parser.add_argument('-n', '--num_episodes', type=int, default=100,

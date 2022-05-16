@@ -1,4 +1,5 @@
 from typing import List
+import random
 from minerl.herobraine.env_specs.simple_embodiment import SIMPLE_KEYBOARD_ACTION, SimpleEmbodimentEnvSpec
 from minerl.herobraine.hero.handler import Handler
 import minerl.herobraine.hero.handlers as handlers
@@ -12,9 +13,10 @@ SIMPLE_KEYBOARD_ACTIONS = [
 
 
 class SimpleExplore(SimpleEmbodimentEnvSpec):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, biomes=None, **kwargs):
         if 'name' not in kwargs:
             kwargs['name'] = 'SimpleExplore-v0'
+        self.biomes = biomes
         super().__init__(*args, **kwargs)
 
     def create_rewardables(self) -> List[Handler]:
@@ -27,9 +29,16 @@ class SimpleExplore(SimpleEmbodimentEnvSpec):
         return []
 
     def create_server_world_generators(self) -> List[Handler]:
-        return [
-            handlers.DefaultWorldGenerator(force_reset="true")
-        ]
+        if self.biomes is not None:
+            biome = random.choice(self.biomes)
+            print('selected', biome)
+            return [
+                handlers.BiomeGenerator(biome=biome, force_reset=True)
+            ]
+        else: 
+            return [
+                handlers.DefaultWorldGenerator(force_reset=True)
+            ]
         
 
     def create_actionables(self) -> List[Handler]:
