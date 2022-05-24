@@ -119,7 +119,7 @@ def worker(id, args):
          
     
 def main(args):
-    abs_env = SimpleExplore(resolution=(args.resolution, args.resolution), forest_only=args.forest_only)
+    abs_env = SimpleExplore(resolution=(args.resolution, args.resolution), biomes=[140, 38, 158, 133, 4, 27, 134, 8, 37, 165, 38, 166, 13, 17, 18, 19, 31])
     abs_env.register()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -142,7 +142,6 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--max_consec_fwd', type=int, default=25,
                         help='default: 25')
     parser.add_argument('-s', '--initial_sweep', action='store_true')
-    parser.add_argument('--forest_only', action='store_true')
     parser.add_argument('-t', '--traj_length', type=int, default=100,
                         help='default: 100')
     parser.add_argument('-n', '--num_episodes', type=int, default=100,

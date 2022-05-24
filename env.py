@@ -31,7 +31,6 @@ class SimpleExplore(SimpleEmbodimentEnvSpec):
     def create_server_world_generators(self) -> List[Handler]:
         if self.biomes is not None:
             biome = random.choice(self.biomes)
-            print('selected', biome)
             return [
                 handlers.BiomeGenerator(biome=biome, force_reset=True)
             ]
