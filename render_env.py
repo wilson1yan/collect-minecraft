@@ -54,7 +54,8 @@ def main():
     while True:
         env.render()
         action, _ = agent.sample()
-        env.step(action)
+        obs, _, _, _ = env.step(action)
+        print([(o.shape, o.min(), o.max(), o.dtype) for o in obs['pov']])
 
 if __name__ == '__main__':
     main()

@@ -19,6 +19,11 @@ class SimpleExplore(SimpleEmbodimentEnvSpec):
         self.biomes = biomes
         super().__init__(*args, **kwargs)
 
+    def create_observables(self) -> List[handlers.translation.TranslationHandler]:
+        return [
+            handlers.POVObservation(self.resolution, include_depth=True),
+        ]
+
     def create_rewardables(self) -> List[Handler]:
         return []
 
