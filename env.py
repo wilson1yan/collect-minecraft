@@ -13,15 +13,17 @@ SIMPLE_KEYBOARD_ACTIONS = [
 
 
 class SimpleExplore(SimpleEmbodimentEnvSpec):
-    def __init__(self, *args, biomes=None, **kwargs):
+    def __init__(self, *args, biomes=None, include_depth=False, **kwargs):
         if 'name' not in kwargs:
             kwargs['name'] = 'SimpleExplore-v0'
         self.biomes = biomes
+        self.include_depth = include_depth
         super().__init__(*args, **kwargs)
 
     def create_observables(self) -> List[handlers.translation.TranslationHandler]:
         return [
-            handlers.POVObservation(self.resolution, include_depth=True),
+            handlers.POVObservation(self.resolution, include_depth=self.include_depth),
+            handlers.ObservationFromCurrentLocation()
         ]
 
     def create_rewardables(self) -> List[Handler]:

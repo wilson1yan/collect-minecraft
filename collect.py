@@ -7,6 +7,7 @@ import numpy as np
 import argparse
 from tqdm import tqdm
 from env import SimpleExplore
+from scipy.spatial.transform import Rotation
 
 
 class SimpleAgent:
@@ -66,18 +67,30 @@ def sample_action(prob_forward):
     
 def collect_episode(env, agent, traj_length):
     agent.reset()
-    observations, actions = [env.reset()['pov']], [0]
+    obs = env.reset()
+    ls = obs['location_stats']
+    pos = np.array([ls['xpos'], ls['ypos'], ls['zpos']], dtype=np.float32)
+    rot = Rotation.from_matrix(np.linalg.inv(obs['pov'][2])[:3,:3]).as_quat()
+    observations, actions = [(*obs['pov'], pos, rot)], [0]
     for t in range(traj_length):
         action, a_id = agent.sample()
         actions.append(a_id + 1)
         obs, _, done, _ = env.step(action)
-        observations.append(obs['pov'])
+        ls = obs['location_stats']
+        pos = np.array([ls['xpos'], ls['ypos'], ls['zpos']], dtype=np.float32)
+        rot = Rotation.from_matrix(np.linalg.inv(obs['pov'][2])[:3,:3])
+        rot = rot.as_quat()
+        observations.append((*obs['pov'], pos, rot))
         if done and t < traj_length - 1:
             return None
 
-    observations = np.stack(observations, axis=0) # THWC, uint8
+    if args.rgb_only:
+        observations = np.stack(observations, axis=0) # THWC, uint8
+    else:
+        rgb, depth, mv, proj, pos, rot = [np.stack(x,axis=0) for x in zip(*observations)]
+        observations = (rgb, depth, mv, proj, pos, rot)
+    
     actions = np.array(actions, dtype=np.int32)
-    assert len(observations) == len(actions) == traj_length + 1, f'{len(observations)}, {len(actions)} != {traj_length + 1}'
     return observations, actions
 
     
@@ -97,29 +110,44 @@ def worker(id, args):
             continue
 
         observations, actions = out
-        if args.file_type == 'npz':
-            fname = osp.join(args.output_dir, f'{i:06d}.npz')
-            np.savez_compressed(fname, video=observations, actions=actions)
-        elif args.file_type == 'mp4':
-            video_fname = osp.join(args.output_dir, f'{i:06d}.mp4')
+
+        rgb = observations if args.rgb_only else observations[0]
+        video_fname = osp.join(args.output_dir, f'{i:06d}.mp4')
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        writer = cv2.VideoWriter(video_fname, fourcc, 20.0, rgb.shape[1:-1])
+        for t in range(rgb.shape[0]):
+            frame = rgb[t]
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            writer.write(frame)
+        writer.release()
+
+        if args.rgb_only:
             action_fname = osp.join(args.output_dir, f'{i:06d}.npy')
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            writer = cv2.VideoWriter(video_fname, fourcc, 20.0, observations.shape[1:-1])
-            for t in range(observations.shape[0]):
-                frame = observations[t]
-                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                writer.write(frame)
-            writer.release()
             np.save(action_fname, actions)
         else:
-            raise ValueError(f'Unsupported file_type: {args.file_type}')
+            other_fname = osp.join(args.output_dir, f'{i:06d}.npz')
+            depth, mv, proj, pos, rot = observations[1:]
+            
+            # Modelview matrix to pose
+            def _mv_to_pose(mv):
+                mv = np.linalg.inv(mv)
+                rot, pos = mv[:3, :3], mv[:3, -1]
+                pos = pos.astype(np.float32)
+                rot = Rotation.from_matrix(rot).as_quat().astype(np.float32)
+                return pos, rot
+            pose = [_mv_to_pose(mv[t]) for t in range(mv.shape[0])]
+            _, _ = [np.stack(x, axis=0) for x in zip(*pose)]
+            
+            np.savez_compressed(other_fname, actions=actions, depth=depth,
+                                proj_matrices=proj, mv_matrices=mv, pos=pos, rot=rot)
         i += 1
         pbar.update(1)
     pbar.close()
          
     
 def main(args):
-    abs_env = SimpleExplore(resolution=(args.resolution, args.resolution), biomes=[134])#biomes=[140, 38, 158, 133, 4, 27, 134, 8, 37, 165, 38, 166, 13, 17, 18, 19, 31])
+    abs_env = SimpleExplore(resolution=(args.resolution, args.resolution), 
+                            include_depth=not args.rgb_only, biomes=[134])#biomes=[140, 38, 158, 133, 4, 27, 134, 8, 37, 165, 38, 166, 13, 17, 18, 19, 31])
     abs_env.register()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -134,7 +162,6 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output_dir', type=str, required=True)
     parser.add_argument('-z', '--n_parallel', type=int, default=1,
                         help='default: 1')
-    parser.add_argument('-f', '--file_type', type=str, default='mp4')
     parser.add_argument('-a', '--action_repeat', type=int, default=5,
                         help='default: 5')
     parser.add_argument('-p', '--prob_forward', type=float, default=0.,
@@ -148,6 +175,7 @@ if __name__ == '__main__':
                         help='default: 100')
     parser.add_argument('-r', '--resolution', type=int, default=128,
                         help='default: 128')
+    parser.add_argument('--rgb_only', action='store_true')
     args = parser.parse_args()
 
     main(args)
