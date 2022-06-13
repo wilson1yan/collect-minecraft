@@ -28,7 +28,7 @@ eye0[2] *= -1
 #viz = o3d.visualization.Visualizer()
 #Gviz.create_window(visible=False)
 all_frames = []
-for t in tqdm(list(range(40))):
+for t in tqdm(list(range(T))):
     eye = data['pos'][t]
     angle = data['rot'][t]
     mv_matrix = compute_mv_matrix(np.array([-4.371139e-09, 1.62, 0.05]), angle)
