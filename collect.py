@@ -61,10 +61,10 @@ ACTIONS_TO_ID = {
 
 def sample_action(prob_forward):
     prob_turn = (1 - prob_forward) / 2
-    i = np.random.choice(['forward', 'left', 'right'], 
+    i = np.random.choice(['forward', 'left', 'right'],
                          p=[prob_forward, prob_turn, prob_turn])
     return ACTIONS[i], ACTIONS_TO_ID[i]
-    
+
 def collect_episode(env, agent, traj_length):
     agent.reset()
     obs = env.reset()
@@ -89,11 +89,11 @@ def collect_episode(env, agent, traj_length):
     else:
         rgb, depth, mv, proj, pos, rot = [np.stack(x,axis=0) for x in zip(*observations)]
         observations = (rgb, depth, mv, proj, pos, rot)
-    
+
     actions = np.array(actions, dtype=np.int32)
     return observations, actions
 
-    
+
 def worker(id, args):
     args.output_dir = osp.join(args.output_dir, f'{id}')
     os.makedirs(args.output_dir, exist_ok=True)
@@ -127,7 +127,7 @@ def worker(id, args):
         else:
             other_fname = osp.join(args.output_dir, f'{i:06d}.npz')
             depth, mv, proj, pos, rot = observations[1:]
-            
+
             # Modelview matrix to pose
             def _mv_to_pose(mv):
                 mv = np.linalg.inv(mv)
@@ -137,17 +137,17 @@ def worker(id, args):
                 return pos, rot
             pose = [_mv_to_pose(mv[t]) for t in range(mv.shape[0])]
             _, _ = [np.stack(x, axis=0) for x in zip(*pose)]
-            
+
             np.savez_compressed(other_fname, actions=actions, depth=depth,
                                 proj_matrices=proj, mv_matrices=mv, pos=pos, rot=rot)
         i += 1
         pbar.update(1)
     pbar.close()
-         
-    
+
+
 def main(args):
-    abs_env = SimpleExplore(resolution=(args.resolution, args.resolution), 
-                            include_depth=not args.rgb_only, biomes=[134])#biomes=[140, 38, 158, 133, 4, 27, 134, 8, 37, 165, 38, 166, 13, 17, 18, 19, 31])
+    abs_env = SimpleExplore(resolution=(args.resolution, args.resolution),
+                            include_depth=not args.rgb_only, biomes=[4])
     abs_env.register()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -164,12 +164,12 @@ if __name__ == '__main__':
                         help='default: 1')
     parser.add_argument('-a', '--action_repeat', type=int, default=5,
                         help='default: 5')
-    parser.add_argument('-p', '--prob_forward', type=float, default=0.,
+    parser.add_argument('-p', '--prob_forward', type=float, default=0.9,
                         help='default: 0.')
-    parser.add_argument('-m', '--max_consec_fwd', type=int, default=25,
+    parser.add_argument('-m', '--max_consec_fwd', type=int, default=50,
                         help='default: 25')
     parser.add_argument('-s', '--initial_sweep', action='store_true')
-    parser.add_argument('-t', '--traj_length', type=int, default=100,
+    parser.add_argument('-t', '--traj_length', type=int, default=300,
                         help='default: 100')
     parser.add_argument('-n', '--num_episodes', type=int, default=100,
                         help='default: 100')
