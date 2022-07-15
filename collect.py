@@ -147,7 +147,7 @@ def worker(id, args):
 
 def main(args):
     abs_env = SimpleExplore(resolution=(args.resolution, args.resolution),
-                            include_depth=not args.rgb_only, biomes=[4])
+                            include_depth=not args.rgb_only, biomes=[6])
     abs_env.register()
 
     os.makedirs(args.output_dir, exist_ok=True)
