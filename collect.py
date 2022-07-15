@@ -160,7 +160,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--output_dir', type=str, required=True)
-    parser.add_argument('-z', '--n_parallel', type=int, default=1,
+    parser.add_argument('-z', '--n_parallel', type=int, default=48,
                         help='default: 1')
     parser.add_argument('-a', '--action_repeat', type=int, default=5,
                         help='default: 5')
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--initial_sweep', action='store_true')
     parser.add_argument('-t', '--traj_length', type=int, default=300,
                         help='default: 100')
-    parser.add_argument('-n', '--num_episodes', type=int, default=100,
+    parser.add_argument('-n', '--num_episodes', type=int, default=50000,
                         help='default: 100')
     parser.add_argument('-r', '--resolution', type=int, default=128,
                         help='default: 128')
