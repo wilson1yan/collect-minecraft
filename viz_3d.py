@@ -22,9 +22,6 @@ T = video.shape[0]
 all_points = []
 all_colors = []
 
-eye0 = data['pos'][0]
-eye0[0] *= -1
-eye0[2] *= -1
 #viz = o3d.visualization.Visualizer()
 #Gviz.create_window(visible=False)
 all_frames = []
@@ -52,9 +49,8 @@ for t in tqdm(list(range(T))):
     point /= point[:, [-1]]
     point = point[:, :-1]
 
-    eye[0] *= -1
-    eye[2] *= -1
-    point += -eye + 2 * eye0
+    eye[1] *= -1
+    point += eye
 
     colors = np.reshape(rgb_frame, (-1, 3))
 
