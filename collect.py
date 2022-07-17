@@ -84,11 +84,8 @@ def collect_episode(env, agent, traj_length):
         if done and t < traj_length - 1:
             return None
 
-    if args.rgb_only:
-        observations = np.stack(observations, axis=0) # THWC, uint8
-    else:
-        rgb, depth, mv, proj, pos, rot = [np.stack(x,axis=0) for x in zip(*observations)]
-        observations = (rgb, depth, mv, proj, pos, rot)
+    rgb, depth, mv, proj, pos, rot = [np.stack(x,axis=0) for x in zip(*observations)]
+    observations = (rgb, depth, mv, proj, pos, rot)
 
     actions = np.array(actions, dtype=np.int32)
     return observations, actions
@@ -111,7 +108,7 @@ def worker(id, args):
 
         observations, actions = out
 
-        rgb = observations if args.rgb_only else observations[0]
+        rgb = observations[0]
         video_fname = osp.join(args.output_dir, f'{i:06d}.mp4')
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         writer = cv2.VideoWriter(video_fname, fourcc, 20.0, rgb.shape[1:-1])
@@ -122,8 +119,8 @@ def worker(id, args):
         writer.release()
 
         if args.rgb_only:
-            action_fname = osp.join(args.output_dir, f'{i:06d}.npy')
-            np.save(action_fname, actions)
+            action_fname = osp.join(args.output_dir, f'{i:06d}.npz')
+            np.savez_compressed(action_fname, actions=actions)
         else:
             other_fname = osp.join(args.output_dir, f'{i:06d}.npz')
             depth, mv, proj, pos, rot = observations[1:]
@@ -147,7 +144,7 @@ def worker(id, args):
 
 def main(args):
     abs_env = SimpleExplore(resolution=(args.resolution, args.resolution),
-                            include_depth=not args.rgb_only, biomes=[6])
+                            include_depth=True, biomes=[6])
     abs_env.register()
 
     os.makedirs(args.output_dir, exist_ok=True)
