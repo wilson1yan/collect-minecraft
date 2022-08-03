@@ -144,7 +144,12 @@ def worker(id, args):
 
 def main(args):
     abs_env = SimpleExplore(resolution=(args.resolution, args.resolution),
-                            include_depth=True, biomes=[6])
+                            biomes=[4, 18, 132, 27, 28, 155, 156, 29, 157, 21, 22, 149, 23,
+                                    151, 168, 169, 5, 19, 133, 30, 31, 158, 32, 33, 160, 161,
+                                    6, 134, 35, 36, 163, 17, 130, 13, 3, 34, 131, 162,
+                                    20, 37],
+                            biome_version=2,
+                            include_depth=True)
     abs_env.register()
 
     os.makedirs(args.output_dir, exist_ok=True)
