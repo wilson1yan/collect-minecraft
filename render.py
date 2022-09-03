@@ -24,7 +24,7 @@ def sample_action(prob_forward):
 
 
 def main():
-    abs_env = SimpleExplore(resolution=(128, 128), biomes=[6])# biomes=[140, 38, 158, 133, 4, 27, 134, 8, 37, 165, 38, 166, 13, 17, 18, 19, 31])
+    abs_env = SimpleExplore(resolution=(128, 128), biomes=[18])# biomes=[140, 38, 158, 133, 4, 27, 134, 8, 37, 165, 38, 166, 13, 17, 18, 19, 31])
     abs_env.register()
 
     env = gym.make('SimpleExplore-v0')
