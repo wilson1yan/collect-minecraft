@@ -144,10 +144,8 @@ def worker(id, args):
 
 def main(args):
     abs_env = SimpleExplore(resolution=(args.resolution, args.resolution),
-                            biomes=[4, 18, 132, 5, 19, 133, 30, 31, 158, 32, 33,
-                                    6, 134, 35, 36, 163, 17, 130, 13, 3, 34, 131, 162,
-                                    20, 37, 184, 183],
-                            biome_version=2,
+                            biomes=[2],
+                            biome_version=1,
                             include_depth=True)
     abs_env.register()
 
