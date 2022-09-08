@@ -140,7 +140,7 @@ class SimpleExplore(SimpleEmbodimentEnvSpec):
         return [
             handlers.KeybasedCommandAction(k, v) for k, v in INVERSE_KEYMAP.items()
             if k in SIMPLE_KEYBOARD_ACTION
-        ] + [handlers.CameraAction()]
+        ] + [handlers.CameraAction(), handlers.ChatAction()]
 
     def create_server_quit_producers(self) -> List[Handler]:
         return []

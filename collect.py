@@ -49,13 +49,14 @@ class SimpleAgent:
 ACTIONS = {
     'forward': dict(forward=np.array(1), jump=np.array(1), camera=np.array([0., 0.])),
     'left': dict(forward=np.array(0), jump=np.array(1), camera=np.array([0., -20.])),
-    'right': dict(forward=np.array(0), jump=np.array(1), camera=np.array([0., 20.]))
+    'right': dict(forward=np.array(0), jump=np.array(1), camera=np.array([0., 20.])),
+    'noop': dict(forward=np.array(0), jump=np.array(0), camera=np.array([0., 0.]))
 }
 
 ACTIONS_TO_ID = {
     'forward': 0,
     'left': 1,
-    'right': 2
+    'right': 2,
 }
 
 
@@ -68,6 +69,13 @@ def sample_action(prob_forward):
 def collect_episode(env, agent, traj_length):
     agent.reset()
     obs = env.reset()
+    v = obs['pov'][3][0, 0].item()
+
+    env.set_next_chat_message("/gamemode c")
+    while not np.allclose(0.4663076102733612, v, atol=1e-13, rtol=1e-13):
+        obs, _, _, _ = env.step(ACTIONS['noop'])
+        v = obs['pov'][3][0, 0].item()
+
     ls = obs['location_stats']
     pos = np.array([ls['xpos'], ls['ypos'], ls['zpos']], dtype=np.float32)
     rot = Rotation.from_matrix(np.linalg.inv(obs['pov'][2])[:3,:3]).as_quat()
