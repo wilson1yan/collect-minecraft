@@ -29,7 +29,7 @@ WORLD_GENERATOR_OPTIONS = '''{
     "biomeScaleWeight": 1.0,
     "biomeScaleOffset": 0.0,
     "seaLevel": 1,
-    "useCaves": false,
+    "useCaves": true,
     "useDungeons": false,
     "dungeonChance": 8,
     "useStrongholds": false,
