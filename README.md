@@ -9,4 +9,4 @@ This repo contains code to collect random trajectories in Minecraft
 
 `python collect.py -o data -z 32`
 
-*Note: Sometimes the MineRL environments for some workers my crash / timeout meaning that you will not collect the full number of specified episodes*
+*Note: Sometimes the MineRL environments for some workers may crash / timeout meaning that you will not collect the full number of specified episodes*
