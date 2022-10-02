@@ -95,18 +95,15 @@ WORLD_GENERATOR_OPTIONS = '''{
 
 
 class SimpleExplore(SimpleEmbodimentEnvSpec):
-    def __init__(self, *args, biomes=None, include_depth=False, biome_version=1, **kwargs):
+    def __init__(self, *args, biomes=None, **kwargs):
         if 'name' not in kwargs:
             kwargs['name'] = 'SimpleExplore-v0'
         self.biomes = biomes
-        self.biome_version = biome_version
-        self.include_depth = include_depth
         super().__init__(*args, **kwargs)
 
     def create_observables(self) -> List[handlers.translation.TranslationHandler]:
         return [
-            handlers.POVObservation(self.resolution, include_depth=self.include_depth),
-            handlers.ObservationFromCurrentLocation()
+            handlers.POVObservation(self.resolution),
         ]
 
     def create_rewardables(self) -> List[Handler]:
@@ -121,15 +118,10 @@ class SimpleExplore(SimpleEmbodimentEnvSpec):
     def create_server_world_generators(self) -> List[Handler]:
         if self.biomes is not None:
             biome = random.choice(self.biomes)
-            if self.biome_version == 1:
-                return [
-                    handlers.DefaultWorldGenerator(force_reset="true",
-                                                   generator_options=WORLD_GENERATOR_OPTIONS % biome)
-                ]
-            else:
-                return [
-                    handlers.BiomeGenerator(biome=biome, force_reset=True)
-                ]
+            return [
+                handlers.DefaultWorldGenerator(force_reset="true",
+                                                generator_options=WORLD_GENERATOR_OPTIONS % biome)
+            ]
         else:
             return [
                 handlers.DefaultWorldGenerator(force_reset=True)

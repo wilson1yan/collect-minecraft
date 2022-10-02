@@ -7,15 +7,13 @@ import numpy as np
 import argparse
 from tqdm import tqdm
 from env import SimpleExplore
-from scipy.spatial.transform import Rotation
 
 
 class SimpleAgent:
-    def __init__(self, prob_forward=0., action_repeat=5, max_consec_fwd=25, initial_sweep=False):
+    def __init__(self, prob_forward, action_repeat, max_consec_fwd):
         self.action_repeat = action_repeat
         self.prob_forward = prob_forward
         self.max_consec_fwd = max_consec_fwd
-        self.initial_sweep = initial_sweep
         self.reset()
 
 
@@ -25,10 +23,6 @@ class SimpleAgent:
         self.action = None
 
     def sample(self):
-        if self.initial_sweep and self.counter < 20:
-            self.counter += 1
-            return (ACTIONS['left'], ACTIONS_TO_ID['left'])
-
         if self.n_fwd >= self.max_consec_fwd:
             prob_forward = 0.
         else:
@@ -69,34 +63,18 @@ def sample_action(prob_forward):
 def collect_episode(env, agent, traj_length):
     agent.reset()
     obs = env.reset()
-    v = obs['pov'][3][0, 0].item()
-
-    env.set_next_chat_message("/gamemode c")
-    while not np.allclose(0.4663076102733612, v, atol=1e-13, rtol=1e-13):
-        obs, _, _, _ = env.step(ACTIONS['noop'])
-        v = obs['pov'][3][0, 0].item()
-
-    ls = obs['location_stats']
-    pos = np.array([ls['xpos'], ls['ypos'], ls['zpos']], dtype=np.float32)
-    rot = Rotation.from_matrix(np.linalg.inv(obs['pov'][2])[:3,:3]).as_quat()
-    observations, actions = [(*obs['pov'], pos, rot)], [0]
+    observations, actions = [obs['pov']], [0]
     for t in range(traj_length):
         action, a_id = agent.sample()
         actions.append(a_id + 1)
         obs, _, done, _ = env.step(action)
-        ls = obs['location_stats']
-        pos = np.array([ls['xpos'], ls['ypos'], ls['zpos']], dtype=np.float32)
-        rot = Rotation.from_matrix(np.linalg.inv(obs['pov'][2])[:3,:3])
-        rot = rot.as_quat()
-        observations.append((*obs['pov'], pos, rot))
-        if done and t < traj_length - 1:
+        observations.append(obs['pov'])
+        if done and t < traj_length - 1: # Invalid if the agent dies early
             return None
 
-    rgb, depth, mv, proj, pos, rot = [np.stack(x,axis=0) for x in zip(*observations)]
-    observations = (rgb, depth, mv, proj, pos, rot)
-
+    rgb = np.stack(observations, axis=0)
     actions = np.array(actions, dtype=np.int32)
-    return observations, actions
+    return rgb, actions
 
 
 def worker(id, args):
@@ -104,7 +82,7 @@ def worker(id, args):
     os.makedirs(args.output_dir, exist_ok=True)
 
     env = gym.make('SimpleExplore-v0')
-    agent = SimpleAgent(args.prob_forward, args.action_repeat, args.max_consec_fwd, args.initial_sweep)
+    agent = SimpleAgent(args.prob_forward, args.action_repeat, args.max_consec_fwd)
 
     num_episodes = args.num_episodes // args.n_parallel + (id < (args.num_episodes % args.n_parallel))
     pbar = tqdm(total=num_episodes, position=id)
@@ -114,9 +92,7 @@ def worker(id, args):
         if out is None:
             continue
 
-        observations, actions = out
-
-        rgb = observations[0]
+        rgb, actions = out
         video_fname = osp.join(args.output_dir, f'{i:06d}.mp4')
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         writer = cv2.VideoWriter(video_fname, fourcc, 20.0, rgb.shape[1:-1])
@@ -126,25 +102,8 @@ def worker(id, args):
             writer.write(frame)
         writer.release()
 
-        if args.rgb_only:
-            action_fname = osp.join(args.output_dir, f'{i:06d}.npz')
-            np.savez_compressed(action_fname, actions=actions)
-        else:
-            other_fname = osp.join(args.output_dir, f'{i:06d}.npz')
-            depth, mv, proj, pos, rot = observations[1:]
-
-            # Modelview matrix to pose
-            def _mv_to_pose(mv):
-                mv = np.linalg.inv(mv)
-                rot, pos = mv[:3, :3], mv[:3, -1]
-                pos = pos.astype(np.float32)
-                rot = Rotation.from_matrix(rot).as_quat().astype(np.float32)
-                return pos, rot
-            pose = [_mv_to_pose(mv[t]) for t in range(mv.shape[0])]
-            _, _ = [np.stack(x, axis=0) for x in zip(*pose)]
-
-            np.savez_compressed(other_fname, actions=actions, depth=depth,
-                                proj_matrices=proj, mv_matrices=mv, pos=pos, rot=rot)
+        action_fname = osp.join(args.output_dir, f'{i:06d}.npz')
+        np.savez_compressed(action_fname, actions=actions)
         i += 1
         pbar.update(1)
     pbar.close()
@@ -175,14 +134,12 @@ if __name__ == '__main__':
                         help='default: 0.')
     parser.add_argument('-m', '--max_consec_fwd', type=int, default=50,
                         help='default: 25')
-    parser.add_argument('-s', '--initial_sweep', action='store_true')
     parser.add_argument('-t', '--traj_length', type=int, default=300,
                         help='default: 100')
-    parser.add_argument('-n', '--num_episodes', type=int, default=50000,
+    parser.add_argument('-n', '--num_episodes', type=int, default=200000,
                         help='default: 100')
     parser.add_argument('-r', '--resolution', type=int, default=128,
                         help='default: 128')
-    parser.add_argument('--rgb_only', action='store_true')
     args = parser.parse_args()
 
     main(args)
