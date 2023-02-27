@@ -48,8 +48,8 @@ class SimpleAgent:
 
 ACTIONS = {
     'forward': dict(forward=np.array(1), jump=np.array(1), camera=np.array([0., 0.])),
-    'left': dict(forward=np.array(0), jump=np.array(1), camera=np.array([0., -20.])),
-    'right': dict(forward=np.array(0), jump=np.array(1), camera=np.array([0., 20.])),
+    'left': dict(forward=np.array(0), jump=np.array(1), camera=np.array([0., -10.])),
+    'right': dict(forward=np.array(0), jump=np.array(1), camera=np.array([0., 10.])),
     'noop': dict(forward=np.array(0), jump=np.array(0), camera=np.array([0., 0.]))
 }
 
@@ -72,9 +72,12 @@ def collect_episode(env, agent, traj_length):
     v = obs['pov'][3][0, 0].item()
 
     env.set_next_chat_message("/gamemode c")
-    while not np.allclose(0.4663076102733612, v, atol=1e-13, rtol=1e-13):
-        obs, _, _, _ = env.step(ACTIONS['noop'])
-        v = obs['pov'][3][0, 0].item()
+    try:
+        while not np.allclose(0.4663076102733612, v, atol=1e-13, rtol=1e-13):
+            obs, _, _, _ = env.step(ACTIONS['noop'])
+            v = obs['pov'][3][0, 0].item()
+    except:
+        return None
 
     ls = obs['location_stats']
     pos = np.array([ls['xpos'], ls['ypos'], ls['zpos']], dtype=np.float32)
@@ -152,7 +155,7 @@ def worker(id, args):
 
 def main(args):
     abs_env = SimpleExplore(resolution=(args.resolution, args.resolution),
-                            biomes=[6],
+                            biomes=[2],
                             biome_version=1,
                             include_depth=True)
     abs_env.register()
@@ -169,7 +172,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output_dir', type=str, required=True)
     parser.add_argument('-z', '--n_parallel', type=int, default=48,
                         help='default: 1')
-    parser.add_argument('-a', '--action_repeat', type=int, default=5,
+    parser.add_argument('-a', '--action_repeat', type=int, default=20,
                         help='default: 5')
     parser.add_argument('-p', '--prob_forward', type=float, default=0.9,
                         help='default: 0.')
@@ -178,7 +181,7 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--initial_sweep', action='store_true')
     parser.add_argument('-t', '--traj_length', type=int, default=300,
                         help='default: 100')
-    parser.add_argument('-n', '--num_episodes', type=int, default=50000,
+    parser.add_argument('-n', '--num_episodes', type=int, default=60000,
                         help='default: 100')
     parser.add_argument('-r', '--resolution', type=int, default=128,
                         help='default: 128')
