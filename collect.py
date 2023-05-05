@@ -113,7 +113,10 @@ def worker(id, args):
     pbar = tqdm(total=num_episodes, position=id)
     i = 0
     while i < num_episodes:
-        out = collect_episode(env, agent, args.traj_length)
+        try:
+            out = collect_episode(env, agent, args.traj_length)
+        except Exception as e:
+            print('skip ep with exception', e)
         if out is None:
             continue
 
@@ -155,7 +158,7 @@ def worker(id, args):
 
 def main(args):
     abs_env = SimpleExplore(resolution=(args.resolution, args.resolution),
-                            biomes=[2],
+                            biomes=None,#[2],
                             biome_version=1,
                             include_depth=True)
     abs_env.register()
@@ -172,18 +175,18 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output_dir', type=str, required=True)
     parser.add_argument('-z', '--n_parallel', type=int, default=48,
                         help='default: 1')
-    parser.add_argument('-a', '--action_repeat', type=int, default=20,
+    parser.add_argument('-a', '--action_repeat', type=int, default=10,
                         help='default: 5')
     parser.add_argument('-p', '--prob_forward', type=float, default=0.9,
                         help='default: 0.')
     parser.add_argument('-m', '--max_consec_fwd', type=int, default=50,
                         help='default: 25')
     parser.add_argument('-s', '--initial_sweep', action='store_true')
-    parser.add_argument('-t', '--traj_length', type=int, default=300,
+    parser.add_argument('-t', '--traj_length', type=int, default=512,
                         help='default: 100')
     parser.add_argument('-n', '--num_episodes', type=int, default=60000,
                         help='default: 100')
-    parser.add_argument('-r', '--resolution', type=int, default=128,
+    parser.add_argument('-r', '--resolution', type=int, default=256,
                         help='default: 128')
     parser.add_argument('--rgb_only', action='store_true')
     args = parser.parse_args()
